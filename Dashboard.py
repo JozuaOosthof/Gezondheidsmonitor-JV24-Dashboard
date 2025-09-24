@@ -164,8 +164,14 @@ df_map = df_map.rename(columns={'MoeiteMetRondkomen_1':'val'})
 
 gdf = gpd.read_file("gemeente_gegeneraliseerd.geojson")[['statcode','statnaam','geometry']]
 gdf = gdf.merge(df_map, left_on='statcode', right_on='RegioS', how='left')
+map_sb = st.selectbox('Kies variabele voor de kaart', bar_options, index=0, key='map_sb')
 
-def fill_with_neighbors(row, gdf):
+gdf_map = gdf[['statcode','statnaam','geometry']].copy()
+df_map = df[['RegioS', map_sb]].rename(columns={map_sb: 'val'})
+gdf_map = gdf_map.merge(df_map, left_on='statcode', right_on='RegioS', how='left')
+gdf_map = gdf_map.drop(columns=['RegioS'])
+
+def gem_opvullen(row, gdf):
     if pd.notna(row['val']):
         return row['val']
     neighbors = gdf[gdf.geometry.touches(row['geometry'])]
@@ -173,17 +179,13 @@ def fill_with_neighbors(row, gdf):
         return neighbors['val'].mean()
     return np.nan
 
-gdf['val'] = gdf.apply(lambda row: fill_with_neighbors(row, gdf), axis=1)
-gdf['val'] = gdf['val'].fillna(gdf['val'].mean())
+gdf_map['val'] = gdf_map.apply(lambda row: gem_opvullen(row, gdf_map), axis=1)
+gdf_map['val'] = gdf_map['val'].fillna(gdf_map['val'].mean())
 
-@st.cache_resource
-def create_folium_map(_gdf):
-    map_sb = st.selectbox('Kies variabele voor de kaart', ['MoeiteMetRondkomen_1'], index=0, key='map_sb')
-
+def maak_kaart(_gdf, _variable):
     m = folium.Map(location=[52.1, 5.3], zoom_start=7)
-    
     colormap = linear.Blues_09.scale(_gdf['val'].min(), _gdf['val'].max())
-    colormap.caption = 'Moeite Met Rondkomen (%)'
+    colormap.caption = _variable
     colormap.add_to(m)
 
     folium.GeoJson(
@@ -196,12 +198,12 @@ def create_folium_map(_gdf):
         },
         tooltip=folium.GeoJsonTooltip(
             fields=['statnaam', 'statcode', 'val'],
-            aliases=['Gemeente:', 'Code:', 'Moeite met rondkomen:'],
+            aliases=['Gemeente:', 'Code:', f'{_variable}:'],
             localize=True
         )
     ).add_to(m)
     return m
 
 with st.container(border=True):
-    m = create_folium_map(gdf)
+    m = maak_kaart(gdf_map, map_sb)
     st_folium(m, width=700, height=800)
