@@ -18,7 +18,7 @@ with st.container(border = True):
     st.markdown("""
         ### Introductie
 
-        Dit dashboard is ontwikkeld in het kader van de minor **Data Science**. Het doel is om met behulp van data-analyse en visualisatie inzicht te krijgen in de 
+        Dit dashboard is ontwikkeld voor Case 2. Het doel is om met behulp van data-analyse en visualisatie inzicht te krijgen in de 
         **Gezondheidsmonitor Jongvolwassenen (2024)** van het RIVM.  
 
         **Projectgroep 6:**  
